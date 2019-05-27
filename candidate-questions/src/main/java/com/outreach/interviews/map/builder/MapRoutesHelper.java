@@ -80,8 +80,6 @@ public class MapRoutesHelper
 		 * @return {@link RoutesBuilder}
 		 */
 		public RoutesBuilder setURL(MapOperations type) {
-			if(type.equals(MapOperations.geocode))
-				throw new UnsupportedOperationException();
 
 			this.operation = type;
 			return this;
@@ -96,10 +94,18 @@ public class MapRoutesHelper
 		 * @throws IllegalArgumentException Thrown to indicate that a method has been passed an illegal orinappropriate argument.
 		 */
 		public RoutesBuilder build() throws UnsupportedOperationException, IOException, IllegalArgumentException {
-			String requestURL = this.getURL()  	+ "&origin=" + getOrigin() 
-												+ "&destination=" + getDestination()
-												+ "&region=" + getRegion()
-												+ "&key=" + this.getAPIKey();
+			String requestURL = "";
+			if (this.operation.equals(MapOperations.directions)) {
+				requestURL = this.getURL()  	+ "&origin=" + getOrigin() 
+													+ "&destination=" + getDestination()
+													+ "&region=" + getRegion()
+													+ "&key=" + this.getAPIKey();
+				
+			} else if (this.operation.equals(MapOperations.geocode)) {
+				requestURL = this.getURL()  	+ "&address=" + getOrigin() 
+													+ "&region=" + getRegion()
+													+ "&key=" + this.getAPIKey();
+			}
 			
 			if(getMode() != null) {
 				requestURL = requestURL + "&mode=" + this.getMode();
@@ -143,6 +149,20 @@ public class MapRoutesHelper
 			}
 		}
 		
+		
+		/**
+		 * Retrieve the geocodes of a location. Uses the origin of the RoutesBuilder object 
+		 * as the location to fetch geocodes
+		 * @return A JSON object {"lat": x, "lng": y} where x and y are the latitude and longitude
+		 */
+		public JsonObject getGeocodes() {
+			if(this.operation.equals(MapOperations.geocode) && zeroResults(this.result)) {
+				return this.result.get("results").getAsJsonArray().get(0).getAsJsonObject()
+						.get("geometry").getAsJsonObject().get("location").getAsJsonObject();
+			} else {
+				throw new IllegalArgumentException("Does not support " + MapOperations.directions.name());
+			}
+		}
 
 		//*************************For Internal Use Only***********************************//
 		private final String getURL() {
@@ -150,7 +170,7 @@ public class MapRoutesHelper
 		}
 
 		private final String getAPIKey() {
-			return System.getenv("OUTREACH_MAPS_KEY");
+			return "AIzaSyCeAwfoBGXTIcsYP9CLtvrrUO5x1vG3hfQ";
 		}
 		
 		private final String getOrigin() {
@@ -176,7 +196,7 @@ public class MapRoutesHelper
 		}
 		
 		private final String getRegion() {
-			if(this.destination == null)
+			if(this.region == null)
 				throw new IllegalArgumentException("Region cannot be empty");
 			
 			return this.region.name();
